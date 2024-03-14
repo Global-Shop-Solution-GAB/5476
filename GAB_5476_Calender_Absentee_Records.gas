@@ -1,0 +1,127 @@
+Program.Sub.ScreenSU.Start
+Gui.Form1..create
+Gui.Form1..caption("T&A Absentees")
+Gui.Form1..size(16260,10695)
+Gui.Form1..position(0,0)
+Gui.Form1..event(unload,form1_unload)
+Gui.Form1..alwaysontop(False)
+Gui.Form1..fontname("Arial")
+Gui.Form1..fontsize(8)
+Gui.Form1..forecolor(0)
+Gui.Form1..fontstyle(,,,,)
+Gui.Form1..BackColor(-2147483633)
+Gui.Form1..controlbox(True)
+Gui.Form1..maxbutton(True)
+Gui.Form1..minbutton(True)
+Gui.Form1..mousepointer(0)
+Gui.Form1..moveable(True)
+Gui.Form1..sizeable(True)
+Gui.Form1..ShowInTaskBar(True)
+Gui.Form1..titlebar(True)
+Gui.Form1.lbl2.create(label,"Month to view:",True,1125,255,1,100,200,True,0,Arial,8,-2147483633,0)
+Gui.Form1.datepicker1.create(datepicker)
+Gui.Form1.datepicker1.visible(True)
+Gui.Form1.datepicker1.size(1980,285)
+Gui.Form1.datepicker1.zorder(0)
+Gui.Form1.datepicker1.position(1360,130)
+Gui.Form1.datepicker1.enabled(True)
+Gui.Form1.datepicker1.checkbox(False)
+Gui.Form1.picturebox1.create(picturebox)
+Gui.Form1.picturebox1.size(15825,9090)
+Gui.Form1.picturebox1.zorder(0)
+Gui.Form1.picturebox1.position(45,990)
+Gui.Form1.picturebox1.enabled(True)
+Gui.Form1.picturebox1.fontname("Arial")
+Gui.Form1.picturebox1.fontsize(8)
+Gui.Form1.picturebox1.BackColor(16777215)
+Gui.Form1.cmdDisplay.create(button)
+Gui.Form1.cmdDisplay.caption("Display")
+Gui.Form1.cmdDisplay.visible(True)
+Gui.Form1.cmdDisplay.size(1470,735)
+Gui.Form1.cmdDisplay.zorder(0)
+Gui.Form1.cmdDisplay.position(14390,60)
+Gui.Form1.cmdDisplay.enabled(True)
+Gui.Form1.cmdDisplay.fontname("Arial")
+Gui.Form1.cmdDisplay.fontsize(8)
+Gui.Form1.cmdDisplay.event(click,cmddisplay_click)
+Gui.Form1.lbl9.create(label,"",True,1935,255,0,200,200,True,0,Arial,8,-2147483633,0)
+Gui.Form1.lbl10.create(label,"",True,1935,255,0,200,200,True,0,Arial,8,-2147483633,0)
+Gui.Form1.lbl11.create(label,"",True,1935,255,0,200,200,True,0,Arial,8,-2147483633,0)
+Gui.Form1.datepicker1.tabstop(True)
+Gui.Form1.datepicker1.tabindex(4)
+Gui.Form1.cmdDisplay.tabstop(True)
+Gui.Form1.cmdDisplay.tabindex(5)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+V.Global.sPTQ.Declare(String)
+V.Global.sDeptQ.Declare(String)
+V.Global.sACQ.Declare(String)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Label Button - Hook 25720 (Populate)
+F.Intrinsic.Control.If(V.Caller.Hook,=,25720)
+	V.Passed.000170.Set("Calendar")
+	F.Intrinsic.Control.End	
+	
+F.Intrinsic.Control.EndIf
+
+'Outputs time and attendance absentee data into a calendar object
+'Call from Custom Menu Item or Script 1 Button in Time and Attendance (Hook 25792)
+F.ODBC.Connection!con.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass,180)
+
+F.Intrinsic.Control.CallSub(Cmddisplay_click)
+
+Gui.form1..show
+Program.Sub.Main.End
+
+program.sub.form1_unload.start
+F.Intrinsic.Control.End
+
+F.ODBC.Connection!Con.close
+
+program.sub.form1_unload.end
+
+program.sub.cmddisplay_click.start
+V.Local.sSql.Declare(String)
+V.Local.dtEDate.declare(Date)
+V.Local.dtBDate.Declare(Date)
+V.Local.sEDate.declare(String)
+V.Local.sBDate.Declare(String)
+V.Local.dtGoDate.Declare(Date)
+V.Local.dtCharge.Declare(Date)
+V.Local.sEmployee.Declare(String)
+V.Local.iColor.Declare(Long)
+
+V.Local.dtGoDate.Set(V.Screen.Form1!datepicker1.Value)
+
+F.Intrinsic.UI.ClearCalendarFeatures
+F.Intrinsic.UI.setcalxoffset(4)
+F.Intrinsic.UI.setcalyoffset(48)
+F.Intrinsic.UI.setcalxspacing(2)
+F.Intrinsic.UI.setcalyspacing(2)
+
+F.Intrinsic.Date.BeginningOfMonth(V.local.dtGoDate,V.Local.dtBDate)
+F.Intrinsic.Date.EndOfMonth(V.local.dtGoDate,V.Local.dtEDate)
+F.Intrinsic.string.format(V.Local.dtBDate,"Yyyy-Mm-Dd",V.Local.sBDate)
+F.Intrinsic.string.format(V.Local.dtEDate,"Yyyy-Mm-Dd",V.Local.sEDate)
+
+F.intrinsic.String.concat("select A.employee, A.name, A.charge_date, A.rec_type, B.pay_type, A.dept, A.earnings_code"," from v_time_attendance A, v_employee_mstr B where A.employee = B.employee and A.rec_type = 'A' ",V.Local.sSql)
+F.Intrinsic.String.Concat(V.Local.sSql,"and A.charge_date between '",V.Local.sBDate,"' and '",V.Local.sEDate,"' ",V.Local.sSql)
+F.Intrinsic.String.Concat(V.Local.sSql," order by A.employee, A.charge_date",V.Local.sSql)
+F.ODBC.Connection!con.Openrecordsetro("rst1",V.Local.sSql)
+
+F.Intrinsic.Control.DoUntil(V.ODBC.con!rst1.EOF,=,True)
+	F.Intrinsic.String.PCase(V.ODBC.con!rst1.FieldVal!name,V.Local.sEmployee)
+	F.Intrinsic.String.Concat(V.ODBC.con!rst1.FieldVal!Employee," - ",V.local.sEmployee,V.Local.sEmployee)
+	V.Local.dtCharge.Set(V.ODBC.con!rst1.FieldVal!charge_date)
+	V.Local.iColor.Set(V.Color.Blue)
+	F.Intrinsic.UI.AddCalendarFeature(V.Local.dtCharge,"CELLTEXT",V.Local.sEmployee,V.Local.iColor,)
+	F.odbc.con!rst1.movenext
+F.Intrinsic.Control.Loop
+
+F.ODBC.con!rst1.Close
+
+Gui.Form1.picturebox1.RenderCalendar(V.Local.dtGoDate)
+program.sub.cmddisplay_click.end
